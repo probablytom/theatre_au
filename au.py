@@ -16,28 +16,28 @@ def construct_task(func):
     completion_status = [0, 0]
     def max_ticks(): return completion_status[0]
     def ticks_passed(): return completion_status[1]
-    def completed(): return ticks_passed() == max_ticks()
+    def sufficient_time_passed(): return ticks_passed() == max_ticks()
+    def just_ran(): return completion_status[1] is 0
 
     # If there's no cost set up, just run the target function, but remember to set func.completed to True when we do.
     if 'default_cost' not in dir(func):
-        def invoker(*args, **kwargs):
+        func.default_cost = 1
+
+    # The function has a cost associated with it, so only run after a limited number of invocations.
+    completion_status[0] = func.default_cost
+
+    def invoker(*args, **kwargs):
+        completion_status[1] += 1
+
+        if sufficient_time_passed():
+            completion_status[1] = 0
             return func(*args, **kwargs)
 
-    else:
-        # The function has a cost associated with it, so only run after a limited number of invocations.
-        completion_status[0] = func.default_cost
-
-        def invoker(*args, **kwargs):
-            completion_status[1] += 1
-
-            if completed():
-                completion_status[1] = 0
-                return func(*args, **kwargs)
-
-            # Didn't return function result; must not have enough invocations yet.
-            return None
+        # Didn't return function result; must not have enough invocations yet.
+        return None
 
     invoker.invocations = completion_status[1]
+    invoker.just_ran = just_ran
     return invoker
 
 
