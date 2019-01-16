@@ -1,5 +1,11 @@
 from copy import copy
 
+def default_cost(cost=0):
+    def _inner_cost(func):
+        func.default_cost = cost
+        return func
+    return _inner_cost
+
 
 def construct_task(func):
     '''

@@ -1,1 +1,1 @@
-from au import construct_task, Clock
+from au import construct_task, Clock, default_cost
