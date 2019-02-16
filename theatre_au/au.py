@@ -48,8 +48,8 @@ def construct_task(func):
 
 
 class Clock(object):
-    def __init__(self, max_ticks=None):
-        self.max_ticks = max_ticks  # None => runs indefinitely
+    def __init__(self, max_ticks=-1):
+        self.max_ticks = max_ticks  # -1 => runs indefinitely
         self.ticks_passed = 0
         self.listeners = []
 
@@ -60,6 +60,12 @@ class Clock(object):
         return self.ticks_passed >= self.max_ticks
 
     def add_listener(self, actor):
+        # We need things to be able to `perform()` so we can `tick()` properly.
+        if 'perform' not in dir(actor):
+            class BadListenerException(Exception):
+                pass
+            raise BadListenerException("Listener provided must adhere to the actor spec expected; specifically, it should have a `perform()` method which returns a generator of functions.")
+
         self.listeners.append(actor.perform())
 
     def tick(self, ticks_remaining=None):
