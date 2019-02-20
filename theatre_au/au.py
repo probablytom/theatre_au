@@ -57,7 +57,7 @@ class Clock(object):
     def time_exhausted(self):
         if self.max_ticks is None:
             return False
-        return self.ticks_passed >= self.max_ticks
+        return self.ticks_passed >= self.max_ticks and self.max_ticks is not -1
 
     def add_listener(self, actor):
         # We need things to be able to `perform()` so we can `tick()` properly.
