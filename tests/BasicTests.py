@@ -16,6 +16,10 @@ class DummyActor(object):
         while True:
             yield self.dummy_action()
 
+    def yield_tasks(self):
+        while True:
+            yield self.dummy_action
+
 
 class BasicTests(unittest.TestCase):
     def setUp(self):
@@ -31,18 +35,52 @@ class BasicTests(unittest.TestCase):
     def test_actors_can_do_things(self):
 
         def action(actor):
-            actor.dummy_state["ticks_seen"] += 1
+            actor.dummy_state["invocations"] += 1
 
         actor = DummyActor()
         action = functools.partial(action, actor)
+        action = theatre_au.task(1)(action)
         actor.dummy_action = action
-        actor.dummy_state['ticks_seen'] = 0
+        actor.dummy_state['invocations'] = 0
 
         self.clock.add_listener(actor)
         self.clock.tick()
 
-        self.assertEquals(self.clock.max_ticks, actor.dummy_state['ticks_seen'])
+        self.assertEquals(self.clock.max_ticks, actor.dummy_state['invocations'])
 
+
+    def test_actors_can_tick_slowly(self):
+
+        def action(actor):
+            actor.dummy_state["invocations"] += 1
+
+        actor = DummyActor()
+        action = functools.partial(action, actor)
+        action = theatre_au.task(4)(action)
+        actor.dummy_action = action
+        actor.dummy_state['invocations'] = 0
+
+        self.clock.add_listener(actor)
+        self.clock.tick(5)
+
+        self.assertEqual(actor.dummy_state['invocations'], 1)
+
+
+    def test_actors_can_tick_quickly(self):
+
+        def action(actor):
+            actor.dummy_state["invocations"] += 1
+
+        actor = DummyActor()
+        action = functools.partial(action, actor)
+        action = theatre_au.task(0.4)(action)
+        actor.dummy_action = action
+        actor.dummy_state['invocations'] = 0
+
+        self.clock.add_listener(actor)
+        self.clock.tick(5)
+
+        self.assertGreater(actor.dummy_state['invocations'], 5)
 
 if __name__ == '__main__':
     unittest.main()
