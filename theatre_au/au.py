@@ -34,13 +34,16 @@ def construct_task(func, default_cost=1):
 
     # If there's no cost set up, just run the target function, but remember to set func.completed to True when we do.
     if 'default_cost' not in dir(func):
-        func.default_cost = default_cost
+        func.cost = default_cost
+    # We rename `default_cost` to `cost` here, so that invoker gets `invoker.cost` when we set `invoker.func_dict` later
+    else:
+        func.cost = func.default_cost
 
     # The function has a cost associated with it, so only run after a limited number of invocations.
-    completion_status[0] = func.default_cost
+    completion_status[0] = func.cost
 
     def invoker(*args, **kwargs):
-        completion_status[1] += min(func.default_cost, 1)
+        completion_status[1] += min(func.cost, 1)
 
         if sufficient_time_passed():
             completion_status[1] -= completion_status[0]
@@ -51,7 +54,8 @@ def construct_task(func, default_cost=1):
 
     invoker.invocations = completion_status[1]
     invoker.just_ran = just_ran
-    invoker.cost = func.default_cost
+    invoker.func_name = func.func_name
+    invoker.func_dict = func.func_dict
     return invoker
 
 class ListenerTracker(object):
@@ -100,7 +104,13 @@ class Clock(object):
                 while actor_time_tracker.ticks_passed_since_added > actor_time_tracker.total_ticks_performed:
                     new_task = next(actor_task)
                     new_task()
-                    ticks_just_passed = min(new_task.cost, 1)
+
+                    # Assume a task with no cost has zero cost (i.e. not a task)
+                    if not hasattr(new_task, 'cost'):
+                        ticks_just_passed = 0
+                    else:
+                        ticks_just_passed = min(new_task.cost, 1)
+
                     actor_time_tracker.total_ticks_performed += ticks_just_passed
 
             self.ticks_passed += 1
